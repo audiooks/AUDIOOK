@@ -71,6 +71,7 @@
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-bottom: 8px;
   }
   input[type=range] {
     flex: 1;
@@ -89,15 +90,32 @@
     min-height: 30px;
     font-weight: 500;
   }
-  /* Volume slider style */
-  .volume {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin-top: 8px;
-  }
+  /* Volume slider theme */
   .volume input[type=range] {
-    flex: 1;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 5px;
+    background: var(--accent);
+    border-radius: 5px;
+    outline: none;
+  }
+  .volume input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 15px;
+    height: 15px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--accent);
+  }
+  .volume input[type=range]::-moz-range-thumb {
+    width: 15px;
+    height: 15px;
+    background: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    border: 2px solid var(--accent);
   }
 </style>
 </head>
@@ -126,10 +144,10 @@
     <div class="time" id="durTime">0:00</div>
   </div>
 
-  <!-- Volume adjuster -->
+  <!-- Volume control -->
   <div class="volume">
-    <span style="color:var(--muted);font-size:13px;">🔊 Volume</span>
-    <input id="volume" type="range" min="0" max="1" step="0.01" value="1" />
+    <label for="volumeRange" style="font-size:12px;color:var(--muted);margin-right:6px;">Vol</label>
+    <input id="volumeRange" type="range" min="0" max="1" step="0.01" value="1">
   </div>
 
   <div class="caption-box" id="captionBox">Captions will appear here</div>
@@ -154,7 +172,7 @@ const curTime = document.getElementById('curTime');
 const durTime = document.getElementById('durTime');
 const captionBox = document.getElementById('captionBox');
 const artworkImg = document.querySelector('#artwork img');
-const volumeSlider = document.getElementById('volume');
+const volumeRange = document.getElementById('volumeRange');
 
 let captions = [];
 let captionsOn = true;
@@ -264,10 +282,9 @@ nextBtn.onclick = () => {
   audioEl.currentTime = 0; // restart same audio
 };
 
-// Volume control
-volumeSlider.addEventListener('input', () => {
-  audioEl.volume = volumeSlider.value;
-});
+volumeRange.oninput = () => {
+  audioEl.volume = volumeRange.value;
+};
 
 (async function init() {
   const audioUrl = getParam('audio');
