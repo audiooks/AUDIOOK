@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AUDIOOK Player</title>
+<style>
+    body {
+        font-family: Arial, sans-serif;
+        background-color: #121212;
+        color: white;
+        text-align: center;
+        margin: 0;
+        padding: 0;
+    }
+    .player-container {
+        max-width: 500px;
+        margin: auto;
+        padding: 20px;
+    }
+    img.logo {
+        width: 100px;
+        margin-bottom: 10px;
+    }
+    img.cover {
+        width: 100%;
+        border-radius: 10px;
+        margin-bottom: 10px;
+    }
+    button {
+        background: #1DB954;
+        border: none;
+        padding: 10px 15px;
+        margin: 5px;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 16px;
+        color: white;
+    }
+    button:hover {
+        background: #17a447;
+    }
+    input[type="range"] {
+        width: 100%;
+        margin: 10px 0;
+        accent-color: #1DB954;
+    }
+    .caption {
+        font-size: 14px;
+        margin-top: 10px;
+        color: #ccc;
+        min-height: 20px;
+    }
+</style>
+</head>
+<body>
+
+<div class="player-container">
+    <img class="logo" src="https://archive.org/download/img-20250811-wa-0028/IMG-20250811-WA0028.jpg" alt="App Logo">
+    <h2 id="story-title">AUDIOOK Player</h2>
+    <img id="cover" class="cover" src="" alt="Cover Image">
+    
+    <audio id="audio" controls></audio>
+
+    <input type="range" id="seek" value="0" min="0" step="1">
+    <div>
+        <span id="currentTime">0:00</span> / <span id="duration">0:00</span>
+    </div>
+
+    <div class="caption" id="caption"></div>
+</div>
+
+<script>
+function getParam(name) {
+    const urlParams = new URLSearchParams(window.location.search);
+    return urlParams.get(name) || "";
+}
+
+const storyId = decodeURIComponent(getParam("id"));
+const audioSrc = decodeURIComponent(getParam("audio"));
+const imageSrc = decodeURIComponent(getParam("image"));
+const titleText = decodeURIComponent(getParam("title"));
+
+document.getElementById("audio").src = audioSrc;
+document.getElementById("cover").src = imageSrc;
+document.getElementById("story-title").textContent = titleText;
+document.title = titleText + " - AUDIOOK";
+
+let captions = [];
+const audio = document.getElementById("audio");
+const seekBar = document.getElementById("seek");
+const currentTimeEl = document.getElementById("currentTime");
+const durationEl = document.getElementById("duration");
+const captionEl = document.getElementById("caption");
+
+async function loadVTTLocal(id) {
+    const url = `vtt/${id}.vtt`;
+    try {
+        const res = await fetch(url);
+        if (!res.ok) {
+            captionEl.style.display = "none";
+            return;
+        }
+        const vttText = await res.text();
+        captions = parseVTT(vttText);
+        if (!captions.length) captionEl.style.display = "none";
+    } catch {
+        captionEl.style.display = "none";
+    }
+}
+
+function parseVTT(vttText) {
+    const lines = vttText.split("\n").map(l => l.trim());
+    let result = [];
+    let start = null;
+    for (let line of lines) {
+        if (line.includes("-->")) {
+            start = toSeconds(line.split("-->")[0].trim());
+        } else if (line && start !== null) {
+            result.push({ time: start, text: line });
+            start = null;
+        }
+    }
+    return result;
+}
+
+function toSeconds(timeStr) {
+    const parts = timeStr.split(":");
+    let sec = parseFloat(parts.pop().replace(",", "."));
+    let min = parseInt(parts.pop());
+    let hr = parts.length ? parseInt(parts.pop()) : 0;
+    return hr * 3600 + min * 60 + sec;
+}
+
+audio.addEventListener("loadedmetadata", () => {
+    seekBar.max = Math.floor(audio.duration);
+    durationEl.textContent = formatTime(audio.duration);
+});
+
+audio.addEventListener("timeupdate", () => {
+    seekBar.value = Math.floor(audio.currentTime);
+    currentTimeEl.textContent = formatTime(audio.currentTime);
+    updateCaptions(audio.currentTime);
+});
+
+seekBar.addEventListener("input", () => {
+    audio.currentTime = seekBar.value;
+});
+
+function formatTime(seconds) {
+    let min = Math.floor(seconds / 60);
+    let sec = Math.floor(seconds % 60);
+    if (sec < 10) sec = "0" + sec;
+    return `${min}:${sec}`;
+}
+
+function updateCaptions(currentTime) {
+    for (let i = captions.length - 1; i >= 0; i--) {
+        if (currentTime >= captions[i].time) {
+            captionEl.textContent = captions[i].text;
+            break;
+        }
+    }
+}
+
+loadVTTLocal(storyId);
+</script>
+
+</body>
+</html>
